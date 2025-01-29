@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="/js/script.js" defer></script>
+  <title>Login - Graphical Password System</title>
+  
+  <style>
+    /* General Styles */
+    body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  background-image: url('/css/picture/1.jpg');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
+}
+
+    .container {
+      background: white;
+      width: 90%;
+      max-width: 500px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h1 {
+      color: #066985;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    input[type="password"], 
+    input[type="file"]  {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #0a849b;
+      outline: none;
+    }
+
+    button {
+      background-color: #047ca4;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0abfe7;
+    }
+
+
+    /* Image Grid Styles */
+    #imageGrid {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    #imageGrid img {
+      width: 100px;
+      height: 100px;
+      margin: 5px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #imageGrid img:hover {
+      transform: scale(1.1);
+    }
+
+    .home-button {
+      text-decoration: none;
+    }
+
+    .home-button button {
+      background-color: #047ca4;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 15px;
+      cursor: pointer;
+    }
+
+    .home-button button:hover {
+      background-color: #0abfe7;
+    }
+
+    p {
+      margin-top: 10px;
+    }
+
+    a {
+      color: #047ca4;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+
+
+    .segment {
+    position: absolute;
+    border: 1px solid #ddd;
+    cursor: pointer;
+  }
+  
+  .segment.selected {
+    border: 2px solid #ff9900; /* Highlight selected segments */
+    filter: brightness(50%); /* Darken the segment */
+  }
+
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Login</h1>
+    <form action="/login" method="POST">
+      <input type="text" name="username" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+
+            <!-- Image selection input -->
+            <input type="file" id="uploadImage" name="image" accept="image/*" required>
+            <div id="imageGrid"></div>
+            <input type="hidden" id="selectedSegments" name="selectedSegments">
+      
+      <button type="submit">Login</button>
+    </form>
+
+    <p>Don't have an account? <a href="/register">Sign up here</a></p>
+
+    <!-- Button to return to home page -->
+    <a href="/" class="home-button">
+      <button type="button">Go to Home</button>
+    </a>
+  </div>
+
+</body>
+</html>
+
