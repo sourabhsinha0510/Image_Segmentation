@@ -8,7 +8,7 @@ const path = require("path");
 const fs = require("fs");
 const session = require("express-session");
 
-const PORT = 3000;
+const PORT = 8000;
 const app = express();
 
 // Middleware
@@ -67,7 +67,6 @@ app.get("/register", (req, res) => res.sendFile(path.join(__dirname, "/views/reg
 app.get("/login", (req, res) => res.sendFile(path.join(__dirname, "/views/login.html")));
 
 // Register Route
-// Register Route
 app.post("/register", uploadImage.single("image"), async (req, res) => {
   try {
     const { username, password, selectedSegments } = req.body;
@@ -78,11 +77,10 @@ app.post("/register", uploadImage.single("image"), async (req, res) => {
       return res.status(400).send("Username is already taken.");
     }
 
-    // Ensure image and segments are provided
     if (!req.file) return res.status(400).send("No image uploaded.");
     if (!selectedSegments) return res.status(400).send("No segments selected.");
 
-    // Hash the password before saving
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({
       username,
@@ -91,7 +89,6 @@ app.post("/register", uploadImage.single("image"), async (req, res) => {
       imagePath: req.file.path,
     });
 
-    // Save the new user to the database
     await newUser.save();
     res.redirect("/login");
   } catch (err) {
@@ -100,9 +97,8 @@ app.post("/register", uploadImage.single("image"), async (req, res) => {
   }
 });
 
-
 // Login Route
-app.post("/login", uploadImage.single("image"), async (req, res) => {
+app.post("/login", async (req, res) => {
   try {
     const { username, password, selectedSegments } = req.body;
 
@@ -124,6 +120,29 @@ app.post("/login", uploadImage.single("image"), async (req, res) => {
     res.status(500).send("Login failed.");
   }
 });
+
+// Updated: Fetch Actual User Image Path API
+app.get('/api/user-image', async (req, res) => {
+  const username = req.query.username;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user || !user.imagePath) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    const imagePathRelative = "/" + user.imagePath.replace(/\\/g, "/"); // Handle Windows slashes
+    console.log("Image path returned:", imagePathRelative);
+
+    res.json({ imagePath: imagePathRelative });
+  } catch (err) {
+    console.error("Error in /api/user-image:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Serve image/document folders
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Dashboard Route
 app.get("/dashboard", (req, res) => {
@@ -165,10 +184,7 @@ app.get("/api/documents", async (req, res) => {
   }
 });
 
-// Serve Static Files (Documents)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Secure document access (Optional: Only authenticated users can view documents)
+// Secure document access
 app.use('/uploads/documents', (req, res, next) => {
   if (!req.session.username) {
     return res.status(401).send("Unauthorized");
