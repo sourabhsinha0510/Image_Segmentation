@@ -7,9 +7,14 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const session = require("express-session");
+const twilio = require("twilio");
+
 
 const PORT = 8000;
 const app = express();
+// Twilio setup
+
+const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 // Middleware
 app.use(express.json());
@@ -99,27 +104,25 @@ app.post("/register", uploadImage.single("image"), async (req, res) => {
 
 // Login Route
 app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
   try {
-    const { username, password, selectedSegments } = req.body;
-
-    if (!selectedSegments) return res.status(400).send("No segments selected.");
     const user = await User.findOne({ username });
-    if (!user) return res.status(400).send("User not found.");
+    if (!user) return res.send("Invalid credentials. <a href='/login'>Try again</a>");
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
-    if (!isPasswordMatch) return res.status(400).send("Incorrect password.");
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.send("Invalid credentials. <a href='/login'>Try again</a>");
 
-    if (JSON.stringify(user.imageSegments.sort()) !== JSON.stringify(JSON.parse(selectedSegments).sort())) {
-      return res.status(400).send("Incorrect image segments.");
-    }
-
-    req.session.username = username;
-    res.redirect("/dashboard");
+    req.session.username = user.username;
+    res.redirect("/verify");
   } catch (err) {
-    console.error("Error in /login:", err);
-    res.status(500).send("Login failed.");
+    console.error(err);
+    res.status(500).send("Server error");
   }
 });
+
+
+
 
 // Updated: Fetch Actual User Image Path API
 app.get('/api/user-image', async (req, res) => {
@@ -143,6 +146,50 @@ app.get('/api/user-image', async (req, res) => {
 
 // Serve image/document folders
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// OTP verification page
+app.get("/verify", (req, res) => {
+  if (!req.session.username) return res.redirect("/login");
+  res.sendFile(path.join(__dirname, "views", "verify.html"));
+});
+
+// Send OTP API
+app.post("/send-otp", async (req, res) => {
+  const { mobile } = req.body;
+  if (!req.session.username) return res.status(401).json({ success: false, message: "Unauthorized" });
+  const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  req.session.otp = otp;
+
+  try {
+    await client.messages.create({
+      body: `Your OTP for PicPass is ${otp} do not share it `,
+      from: twilioPhone,
+      to: mobile,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Twilio error:", err.message);
+    res.status(500).json({ success: false, message: "Failed to send OTP" });
+  }
+});
+
+// Verify OTP
+app.post("/verify", (req, res) => {
+  const userOtp = req.body.otp;
+  if (!req.session.otp) {
+    return res.send("Session expired. <a href='/login'>Login again</a>");
+  }
+
+  if (parseInt(userOtp) === req.session.otp) {
+    req.session.isAuthenticated = true;
+    delete req.session.otp;
+    res.redirect("/dashboard");
+  } else {
+    res.send("Invalid OTP. <a href='/verify'>Try again</a>");
+  }
+});
 
 // Dashboard Route
 app.get("/dashboard", (req, res) => {
