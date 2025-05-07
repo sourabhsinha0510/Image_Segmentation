@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OTP Verification</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background-image: url('/css/1bg.jpg');
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: white;
+      width: 90%;
+      max-width: 400px;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    h2 {
+      color: #066985;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #047ca4;
+      color: white;
+      padding: 12px;
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #0abfe7;
+    }
+
+    #status {
+      margin-top: 15px;
+      color: red;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>OTP Verification</h2>
+
+    <!-- Form to send OTP -->
+    <form id="sendOtpForm">
+      <input type="text" name="mobile" id="mobile" placeholder="Enter mobile number with +91" required />
+      <button type="submit">Send OTP</button>
+    </form>
+
+    <!-- Form to verify OTP -->
+    <form id="verifyOtpForm" method="POST" action="/verify" style="display:none;">
+      <input type="text" name="otp" id="otp" placeholder="Enter OTP" required />
+      <button type="submit">Verify OTP</button>
+    </form>
+
+    <p id="status"></p>
+  </div>
+
+  <script>
+    const sendForm = document.getElementById("sendOtpForm");
+    const verifyForm = document.getElementById("verifyOtpForm");
+    const status = document.getElementById("status");
+
+    sendForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const mobile = document.getElementById("mobile").value;
+      status.textContent = "Sending OTP...";
+
+      const res = await fetch("/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        status.textContent = "OTP sent successfully!";
+        sendForm.style.display = "none";
+        verifyForm.style.display = "block";
+      } else {
+        status.textContent = data.message || "Failed to send OTP.";
+      }
+    });
+  </script>
+</body>
+</html>
