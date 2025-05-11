@@ -112,6 +112,14 @@ app.post("/login", async (req, res) => {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.send("Invalid credentials. <a href='/login'>Try again</a>");
+    
+    const inputSegments = JSON.parse(selectedSegments);
+    const storedSegments = user.imageSegments;
+
+    const segmentsMatch =
+      inputSegments.length === storedSegments.length &&
+      inputSegments.every((seg, index) => seg === storedSegments[index]);
+
 
     req.session.username = user.username;
     res.redirect("/verify");
