@@ -104,7 +104,7 @@ app.post("/register", uploadImage.single("image"), async (req, res) => {
 
 // Login Route
 app.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, selectedSegments } = req.body;
 
   try {
     const user = await User.findOne({ username });
@@ -112,22 +112,88 @@ app.post("/login", async (req, res) => {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.send("Invalid credentials. <a href='/login'>Try again</a>");
-    
-    const inputSegments = JSON.parse(selectedSegments);
+
+    let inputSegments = [];
+    try {
+      inputSegments = JSON.parse(selectedSegments);
+    } catch (err) {
+      console.error("Error parsing selectedSegments:", err);
+      return res.status(400).send("Invalid graphical password format.");
+    }
+
     const storedSegments = user.imageSegments;
 
     const segmentsMatch =
       inputSegments.length === storedSegments.length &&
       inputSegments.every((seg, index) => seg === storedSegments[index]);
 
+    if (!segmentsMatch) {
+      return res.send("Incorrect graphical password. <a href='/login'>Try again</a>");
+    }
 
     req.session.username = user.username;
     res.redirect("/verify");
   } catch (err) {
-    console.error(err);
+    console.error("Server error:", err);
     res.status(500).send("Server error");
   }
 });
+
+
+
+
+
+// Updated: Fetch Actual User Image Path API
+app.get('/api/user-image', async (req, res) => {
+  const username = req.query.username;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user || !user.imagePath) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    const imagePathRelative = "/" + user.imagePath.replace(/\\/g, "/"); // Handle Windows slashes
+    console.log("Image path returned:", imagePathRelative);
+
+    res.json({ imagePath: imagePathRelative });
+  } catch (err) {
+    console.error("Error in /api/user-image:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Serve image/document folders
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// OTP verification page
+app.get("/verify", (req, res) => {
+  if (!req.session.username) return res.redirect("/login");
+  res.sendFile(path.join(__dirname, "views", "verify.html"));
+});
+
+// Send OTP API
+app.post("/send-otp", async (req, res) => {
+  const { mobile } = req.body;
+  if (!req.session.username) return res.status(401).json({ success: false, message: "Unauthorized" });
+  const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  req.session.otp = otp;
+
+  try {
+    await client.messages.create({
+      body: `Your OTP for PicPass is ${otp} `,
+      from: twilioPhone,
+      to: mobile,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Twilio error:", err.message);
+    res.status(500).json({ success: false, message: "Failed to send OTP" });
+  }
+});
+
 
 
 
